@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Auto Publisher</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body class="container-fluid">
+
+<script>
+    window.fbAsyncInit = function () {
+        FB.init({
+            appId: '481962574476380',
+            xfbml: true,
+            version: 'v20.0'
+        });
+    };
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+
+<h1>Facebook Auto Publish</h1>
+<p th:text="'Hello ' + ${user.name}"></p>
+<button class="btn btn-primary" id="fb-login">
+    Connect with Facebook
+</button>
+<button class="btn btn-primary" id="fb-logout">
+    Disconnect Facebook
+</button>
+<button class="btn btn-primary" id="status-btn">
+    Get FB Login Status
+</button>
+<a th:href="@{/publish}" class="btn btn-primary" id="publish-btn">
+    Publish Configuration
+</a>
+<p class="status text-bg-info p-3 mt-2"></p>
+<p th:text="'[User Long Lived Token Exists: ' + ${userTokenStatus} + ']'"
+   class="text-bg-info p-3 mt-2"></p>
+<a th:href='@{/fb-status}'>Refresh Token Status</a>
+
+<a th:href="@{/pages}" class="btn btn-primary mt-3 d-block">List My Pages</a>
+<div class="row">
+    <div class="col-md-4" th:each="page: ${pages}">
+        <p th:text="${page.pageId}"></p>
+        <p th:text="${page.name}"></p>
+        <p th:text="${page.tasks}"></p>
+    </div>
+</div>
+
+<h1>Reco Sample Entries</h1>
+<div class="container-fluid">
+
+    <form action="#" method="post" th:object="${entry}" th:action="@{/newEntry}">
+        <div class="mb-3">
+            <label for="desc" class="form-label">Description</label>
+            <textarea class="form-control" id="desc" th:field="*{description}"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="desc" class="form-label">Rating</label>
+            <input type="number" max="5" min="1" class="form-control" th:field="*{rating}" id="rating">
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+</div>
+
+<div class="row">
+
+    <div class="col-lg-3" th:each="entry: ${entries}">
+
+        <div class="card m-3 p-3">
+            <p th:text="'Entry Id: ' + ${entry.entryId}"></p>
+            <p th:text="'Entry Rating: ' + ${entry.rating}"></p>
+            <p th:text="${entry.description}"></p>
+        </div>
+
+    </div>
+</div>
+
+<!-- jquery -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+<script th:inline="javascript">
+    $(window).on('load', function () {
+
+
+        // helper function to change state of buttons based on client status
+        function statusChangeCallback(status) {
+            $('.status').text('FB Connection status: ' + status)
+            if (status === 'connected') {
+                $('#fb-login').prop('disabled', true)
+                $('#fb-logout').prop('disabled', false)
+            }
+            else {
+                $('#fb-login').prop('disabled', false)
+                $('#fb-logout').prop('disabled', true)
+            }
+        }
+
+        // checks if facebook logged in or not
+        function fbLoginStatus() {
+            FB.getLoginStatus(function (response) {
+                statusChangeCallback(response.status)
+            })
+        }
+
+        // initial call on window load
+        fbLoginStatus()
+
+        // get status
+        $('#status-btn').on('click', function () {
+            fbLoginStatus()
+        })
+
+        // on login click
+        $("#fb-login").click(function () {
+
+            FB.login(function (response) {
+                statusChangeCallback(response.stauts)
+                if (response.status !== 'connected') {
+                    $('.satus').text(response.status + ". Login failed or the user cancelled.")
+                }
+                else {
+                    console.log(response)
+                    $('.status').text(response.status + " Login succeeded.")
+                    // send data to backend for long lived token processing
+                    $.ajax({
+                        url: '/fb-login',
+                        type: 'POST',
+                        dataType: 'json',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        data: JSON.stringify(response)
+                    })
+                }
+            }, {
+                config_id: '1144779519944770'
+            })
+        })
+
+        // on logout
+        $('#fb-logout').click(function () {
+            FB.logout(function (response) {
+                statusChangeCallback(response.status)
+            }, {
+                config_id: '1144779519944770'
+            })
+        })
+    })
+</script>
+</body>
+
+</html>
