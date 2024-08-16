@@ -2,7 +2,6 @@ package com.autopublish.socials.controller;
 
 import com.autopublish.socials.entities.Customer;
 import com.autopublish.socials.entities.Entry;
-import com.autopublish.socials.entities.FBPage;
 import com.autopublish.socials.services.CustomerService;
 import com.autopublish.socials.services.EntryService;
 import com.autopublish.socials.services.FBService;
@@ -62,7 +61,6 @@ public class IndexController {
     // attributes needed
     @ModelAttribute
     public void allEntries(Model model) {
-        model.addAttribute("entries", entryService.findAll());
     }
 
     @ModelAttribute
@@ -70,11 +68,12 @@ public class IndexController {
         UserDetails userDetails = (UserDetails) auth.getPrincipal();
         // TODO: handle null case
         Customer customer = customerService.getByUsername(userDetails.getUsername());
+        assert customer != null;
         Entry entry = new Entry();
-        entry.setCustomerId(customer);
+        entry.setCustomer(customer);
         model.addAttribute("user", customer);
         model.addAttribute("entry", entry);
-
+        model.addAttribute("entries", entryService.findAllByCustomer(customer));
         // see if tokens already exist?
         boolean userLongLivedTokenExists = customer.getFbUserAccessToken() != null;
         model.addAttribute("userTokenStatus", userLongLivedTokenExists);

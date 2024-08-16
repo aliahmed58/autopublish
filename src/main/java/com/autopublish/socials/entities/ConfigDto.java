@@ -6,25 +6,25 @@ import java.util.List;
 import java.util.Set;
 
 public class ConfigDto {
-    private List<FBPage> pages;
+    private List<CustomerFBPage> pages;
 
     public ConfigDto() {
         this.pages = new ArrayList<>();
     }
 
-    public void addPage(FBPage page) {
+    public void addPage(CustomerFBPage page) {
         pages.add(page);
     }
 
-    public void addPages(Set<FBPage> pages) {
+    public void addPages(Set<CustomerFBPage> pages) {
         this.pages.addAll(pages);
     }
 
-    public List<FBPage> getPages() {
+    public List<CustomerFBPage> getPages() {
         return pages;
     }
 
-    public void setPages(List<FBPage> pages) {
+    public void setPages(List<CustomerFBPage> pages) {
         this.pages = pages;
     }
 }

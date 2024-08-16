@@ -1,7 +1,6 @@
 package com.autopublish.socials.entities;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Type;
 
 /*
 *  Using minimal fields
@@ -14,7 +13,7 @@ public class Entry {
 
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "customerId", referencedColumnName = "username")
-    private Customer customerId;
+    private Customer customer;
 
     private int rating;
 
@@ -32,17 +31,17 @@ public class Entry {
         this.entryId = entryId;
     }
 
-    public Customer getCustomerId() {
-        return customerId;
+    public Customer getCustomer() {
+        return customer;
     }
 
-    public void setCustomerId(Customer customerId) {
-        this.customerId = customerId;
+    public void setCustomer(Customer customer) {
+        this.customer = customer;
     }
 
-    public Entry(Long entryId, Customer customerId, int rating, String description) {
+    public Entry(Long entryId, Customer customer, int rating, String description) {
         this.entryId = entryId;
-        this.customerId = customerId;
+        this.customer = customer;
         this.rating = rating;
         this.description = description;
     }

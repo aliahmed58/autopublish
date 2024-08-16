@@ -1,7 +1,7 @@
 package com.autopublish.socials.services;
 
-import com.autopublish.socials.entities.Customer;
-import com.autopublish.socials.entities.FBPage;
+import com.autopublish.socials.entities.*;
+import com.autopublish.socials.repositories.CustomerFBPageRepository;
 import com.autopublish.socials.repositories.FBPageRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,9 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.function.ServerRequest;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,6 +38,9 @@ public class FBService {
     private RestTemplate restTemplate;
     @Autowired
     private FBPageRepository pageRepository;
+
+    @Autowired
+    private CustomerFBPageRepository customerFBPageRepository;
 
     @Autowired
     private ObjectMapper jsonObjectMapper;
@@ -90,7 +98,7 @@ public class FBService {
                     result);
 
             String longLivedUserAccessToken = resultNode.get("access_token").asText();
-            String longLivedPageAccessToken = getPageLongAccessToken(longLivedUserAccessToken,
+            getPageLongAccessToken(longLivedUserAccessToken,
                     fbUserId, currentCustomer);
 
             currentCustomer.setFbUserAccessToken(longLivedUserAccessToken);
@@ -113,7 +121,7 @@ public class FBService {
 
     // returns Long Lived Page token that has no expiry - also returns page data which should be accessed here and saved
     // like the page id
-    public String getPageLongAccessToken(String longLivedUserAccessToken, String fbUserId,
+    public void getPageLongAccessToken(String longLivedUserAccessToken, String fbUserId,
                                          Customer customer) throws JsonProcessingException {
         logger.info("Fetching long-lived Page Access Token");
         final String oAuthUri = facebookGraphApiUri + "/" + fbUserId + "/accounts?" +
@@ -125,27 +133,31 @@ public class FBService {
             JsonNode resultNode = jsonObjectMapper.readTree(result);
             JsonNode dataArray = resultNode.get("data");
 
-            List<FBPage> pages = new ArrayList<>();
+            Set<CustomerFBPage> fbpages = new HashSet<>();
             if (dataArray.isArray()) {
                 for (JsonNode node : dataArray) {
+                    CustomerFBPage customerFBPages = new CustomerFBPage();
                     ((ObjectNode) node).remove("category_list");
+                    String accessToken = node.get("access_token").textValue();
+                    ((ObjectNode) node).remove("access_token");
                     String res = jsonObjectMapper.writeValueAsString(node);
                     FBPage page = jsonObjectMapper.readValue(res, FBPage.class);
                     boolean hasPermissionsRequired = this.checkUserHasPermissions(page.getTasks());
                     if (hasPermissionsRequired) {
-                        pages.add(page);
+                        customerFBPages.setCustomer(customer);
+                        customerFBPages.setAccessToken(accessToken);
+                        customerFBPages.setPage(page);
+                        fbpages.add(customerFBPages);
                     } else {
                         logger.warn("User with {} does not have enough permissions to manage {} :" +
                                 " {}", fbUserId, page.getName(), page.getPageId());
                     }
                 }
             }
-            customer.setPages(new HashSet<>(pages));
-            return dataArray.get(0).get("access_token").asText();
+            customer.setCustomerPages(fbpages);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
         }
     }
 
@@ -155,24 +167,43 @@ public class FBService {
         return LocalDateTime.now().plusSeconds(seconds);
     }
 
-    // TODO: Convert page to pages list so it can run async
     @Async
-    public void publishPost(FBPage page, Customer customer) {
-        if (page == null || customer == null) {
-            throw new RuntimeException("Null entity");
+    public void publishPost(List<Entry> entries, Customer customer) throws JsonProcessingException {
+        // Get all pages where publish is enabled
+        List<CustomerFBPage> customerFBPages =
+                customerFBPageRepository.findByCustomerAndPublishEnabled(customer, true);
+
+        // for every page that is enabled, publish entries
+        for (CustomerFBPage customerFBPage : customerFBPages) {
+            String pageId = customerFBPage.getPage().getPageId();
+
+            String publishUri = facebookGraphApiUri + "/" + pageId + "/feed?access_token=" +
+                    customerFBPage.getAccessToken();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+             for (Entry entry : entries) {
+                 String message = "I got this recommendation on Reach150: \n" +
+                         entry.getDescription() + " with a rating of: " + entry.getRating();
+                String postBody = "{\"message\": \"" + entry.getDescription() + "\"" +
+                        ",\"published\": \"true\" }";
+                HttpEntity<String> entity = new HttpEntity<>(postBody, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity(publishUri, entity,
+                        String.class);
+                if (response.hasBody()) {
+                    System.out.println(response.getBody());
+                }
+                else {
+                    System.out.println(response.getStatusCode());
+                }
+            }
         }
-        // check if the given page contains the customer as it's admin
-        // TODO: Override equals for matching customers
-        if (!page.getCustomers().contains(customer)) {
-            throw new RuntimeException("Unauthorized access");
-        }
-        final String publishUri = this.facebookGraphApiUri + "/" + page.getPageId() + "/feed" +
-                "/access_token?=" + page.getAccess_token();
+
     }
 
     @Async
     public void publishPhoto(List<FBPage> pages, Customer customer) {
-
     }
 
     // current response does not include token expiry, as opposed to written in facebook docs
@@ -180,20 +211,30 @@ public class FBService {
 
 
     public List<FBPage> getPagesByCustomer(Customer customer) {
-        return pageRepository.findByCustomers(new HashSet<>(Arrays.asList(customer)));
+        List<CustomerFBPage> customerFBPages = customerFBPageRepository.findByCustomer(customer);
+        List<FBPage> pages = new ArrayList<>();
+        for (CustomerFBPage customerFBPage : customerFBPages) {
+            pages.add(customerFBPage.getPage());
+        }
+        return pages;
     }
 
     public FBPage getPageById(String id) {
         return pageRepository.findByPageId(id).orElse(null);
     }
 
-    public void setPublishEnabled(String pageId, boolean publishEnabled) {
-        Optional<FBPage> pageObject = pageRepository.findByPageId(pageId);
-        if (pageObject.isPresent()) {
-            FBPage page = pageObject.get();
-            page.setPublishEnabled(publishEnabled);
-            pageRepository.save(page);
+    public void setPublishingEnabled(Set<CustomerFBPage> pages, Customer customer) {
+        for (CustomerFBPage page : pages) {
+            String pageId = page.getPage().getPageId();
+            String customerId = customer.getUsername();
+            CustomerPageId customerPageId = new CustomerPageId(customerId, pageId);
+            CustomerFBPage record = customerFBPageRepository.findById(customerPageId).orElse(null);
+            if (record != null) {
+                record.setPublishEnabled(page.isPublishEnabled());
+                customerFBPageRepository.save(record);
+            }
         }
+        customerFBPageRepository.flush();
     }
 
 }

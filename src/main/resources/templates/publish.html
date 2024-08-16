@@ -15,13 +15,13 @@
 
         <div class="row">
             <div class="col-lg-4" th:each="page, itemStat: *{pages}">
-                <input type="hidden" th:field="*{pages[__${itemStat.index}__].pageId}">
+                <input type="hidden" th:field="*{pages[__${itemStat.index}__].page}">
                 <div class="card">
-                    <div th:text="*{pages[__${itemStat.index}__].name}" class="card-header"></div>
+                    <div th:text="*{pages[__${itemStat.index}__].page.name}" class="card-header"></div>
                     <div class="card-body">
-                        <p th:text="*{pages[__${itemStat.index}__].pageId}"></p>
+                        <p th:text="*{pages[__${itemStat.index}__].page.pageId}"></p>
                         <p th:text="'Publishing Enabled: ' + *{pages[__${itemStat.index}__].publishEnabled}"></p>
-                        <input type="checkbox" th:field="*{pages[__${itemStat.index}__].publishEnabled}">
+                        <input type="checkbox" id="publishEnabled" th:field="*{pages[__${itemStat.index}__].publishEnabled}">
                         <label for="publishEnabled">Publishing Enabled</label>
                     </div>
                 </div>
@@ -31,7 +31,8 @@
         <input type="submit" value="Save Configuration" class="btn btn-primary mt-2">
     </form>
 
-    <a th:href="@{/publish-reco}" class="btn btn-primary mt-2">Test Publishing</a>
+    <a th:href="@{/publish-entry}" class="btn btn-primary mt-2">Test Publishing</a>
+    <p th:text="${error}" class="text-danger"></p>
 
     <!-- jquery -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"

@@ -10,6 +10,6 @@ import java.util.Set;
 
 public interface FBPageRepository extends JpaRepository<FBPage, String> {
 
-    public List<FBPage> findByCustomers(Set<Customer> customer);
+//    public List<FBPage> findByCustomers(Set<Customer> customer);
     public Optional<FBPage> findByPageId(String id);
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -20,27 +21,19 @@ public class FBPage {
     private String category;
 
     @JsonIgnore
-    @ManyToMany(mappedBy = "pages")
-    private Set<Customer> customers = new HashSet<>();
-
-    @JsonProperty("access_token")
-    private String access_token;
+    @OneToMany(mappedBy = "page")
+    private Set<CustomerFBPage> customerPages = new HashSet<>();
 
     @Transient
     private List<String> tasks;
 
-    @JsonIgnore
-    private boolean publishEnabled;
-
-    public FBPage(String pageId, String name, String category, Set<Customer> customers,
-                  String access_token, List<String> tasks, boolean publishEnabled) {
+    public FBPage(String pageId, String name, String category, Set<CustomerFBPage> customerPages,
+                  List<String> tasks) {
         this.pageId = pageId;
         this.name = name;
         this.category = category;
-        this.customers = customers;
-        this.access_token = access_token;
+        this.customerPages = customerPages;
         this.tasks = tasks;
-        this.publishEnabled = publishEnabled;
     }
 
     public FBPage() {
@@ -71,20 +64,12 @@ public class FBPage {
         this.pageId = pageId;
     }
 
-    public Set<Customer> getCustomers() {
-        return customers;
+    public Set<CustomerFBPage> getCustomerPages() {
+        return customerPages;
     }
 
-    public void setCustomers(Set<Customer> customers) {
-        this.customers = customers;
-    }
-
-    public String getAccess_token() {
-        return access_token;
-    }
-
-    public void setAccess_token(String access_token) {
-        this.access_token = access_token;
+    public void setCustomerPages(Set<CustomerFBPage> customerPages) {
+        this.customerPages = customerPages;
     }
 
     public List<String> getTasks() {
@@ -95,24 +80,26 @@ public class FBPage {
         this.tasks = tasks;
     }
 
-    public boolean isPublishEnabled() {
-        return publishEnabled;
-    }
-
-    public void setPublishEnabled(boolean publishEnabled) {
-        this.publishEnabled = publishEnabled;
-    }
-
     @Override
     public String toString() {
         return "FBPage{" +
                 "pageId='" + pageId + '\'' +
                 ", name='" + name + '\'' +
                 ", category='" + category + '\'' +
-                ", customers=" + customers +
-                ", access_token='" + access_token + '\'' +
+                ", customers=" + customerPages +
                 ", tasks=" + tasks +
-                ", publishEnabled=" + publishEnabled +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FBPage fbPage)) return false;
+        return Objects.equals(pageId, fbPage.pageId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(pageId);
     }
 }

@@ -1,10 +1,10 @@
 package com.autopublish.socials.controller;
 
-import com.autopublish.socials.entities.ConfigDto;
-import com.autopublish.socials.entities.Customer;
-import com.autopublish.socials.entities.FBPage;
+import com.autopublish.socials.entities.*;
 import com.autopublish.socials.services.CustomerService;
+import com.autopublish.socials.services.EntryService;
 import com.autopublish.socials.services.FBService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Controller
@@ -24,6 +26,8 @@ public class PublishController {
     private FBService fbService;
     @Autowired
     private CustomerService customerService;
+    @Autowired
+    private EntryService entryService;
 
     @GetMapping("/publish")
     public String publishPage() {
@@ -32,9 +36,20 @@ public class PublishController {
 
     @PostMapping("/update-config")
     public String updateConfig(@ModelAttribute ConfigDto config, Model model) {
-        for (FBPage page : config.getPages()) {
-            fbService.setPublishEnabled(page.getPageId(), page.isPublishEnabled());
+        Customer customer = (Customer) model.getAttribute("user");
+        fbService.setPublishingEnabled(new HashSet<>(config.getPages()), customer);
+        return "publish";
+    }
+
+    @GetMapping("/publish-entry")
+    public String publishEntry(Model model) throws JsonProcessingException {
+        Customer customer = (Customer) model.getAttribute("user");
+        List<Entry> customerEntries = entryService.findAllByCustomer(customer);
+        if (customerEntries.isEmpty()) {
+            model.addAttribute("error", "No entries found to publish, please post an entry");
+            return "publish";
         }
+        fbService.publishPost(customerEntries, customer);
         return "publish";
     }
 
@@ -45,7 +60,7 @@ public class PublishController {
         assert customer != null;
 
         ConfigDto configDto = new ConfigDto();
-        configDto.addPages(customer.getPages());
+        configDto.addPages(customer.getCustomerPages());
 
         model.addAttribute("user", customer);
         model.addAttribute("pages", configDto);

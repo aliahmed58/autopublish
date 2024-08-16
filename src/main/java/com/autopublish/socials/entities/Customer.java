@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -21,13 +22,8 @@ public class Customer {
 
     private String name;
 
-    @ManyToMany(cascade = CascadeType.ALL)
-    @JoinTable(
-            name = "customer_fbpages",
-            joinColumns = { @JoinColumn(name = "username") },
-            inverseJoinColumns = { @JoinColumn(name = "pageId") }
-    )
-    private Set<FBPage> pages = new HashSet<>();
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL)
+    private Set<CustomerFBPage> customerPages = new HashSet<>();
 
 
     @Nullable
@@ -37,12 +33,13 @@ public class Customer {
 
     }
 
-    public Customer(String username, String password, String fbUserId, String name, Set<FBPage> pages, @Nullable String fbUserAccessToken) {
+    public Customer(String username, String password, String fbUserId, String name,
+                    Set<CustomerFBPage> customerPages, @Nullable String fbUserAccessToken) {
         this.username = username;
         this.password = password;
         this.fbUserId = fbUserId;
         this.name = name;
-        this.pages = pages;
+        this.customerPages = customerPages;
         this.fbUserAccessToken = fbUserAccessToken;
     }
 
@@ -92,12 +89,12 @@ public class Customer {
         this.fbUserAccessToken = fbUserAccessToken;
     }
 
-    public Set<FBPage> getPages() {
-        return pages;
+    public Set<CustomerFBPage> getCustomerPages() {
+        return customerPages;
     }
 
-    public void setPages(Set<FBPage> pages) {
-        this.pages = pages;
+    public void setCustomerPages(Set<CustomerFBPage> customerPages) {
+        this.customerPages = customerPages;
     }
 
     @Override
@@ -107,7 +104,20 @@ public class Customer {
                 ", password='" + password + '\'' +
                 ", fbUserId=" + fbUserId +
                 ", name='" + name + '\'' +
+                ", custommerPages=" + customerPages +
                 ", fbUserAccessToken='" + fbUserAccessToken + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Customer customer)) return false;
+        return Objects.equals(username, customer.username);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(username);
     }
 }
