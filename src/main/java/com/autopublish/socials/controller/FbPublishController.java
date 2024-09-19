@@ -7,7 +7,6 @@ import com.autopublish.socials.services.FBService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,10 +16,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Controller
-public class PublishController {
+public class FbPublishController {
 
     @Autowired
     private FBService fbService;
@@ -31,14 +29,14 @@ public class PublishController {
 
     @GetMapping("/publish")
     public String publishPage() {
-        return "publish";
+        return "facebook-publish";
     }
 
     @PostMapping("/update-config")
     public String updateConfig(@ModelAttribute ConfigDto config, Model model) {
         Customer customer = (Customer) model.getAttribute("user");
         fbService.setPublishingEnabled(new HashSet<>(config.getPages()), customer);
-        return "publish";
+        return "facebook-publish";
     }
 
     @GetMapping("/publish-entry")
@@ -50,7 +48,7 @@ public class PublishController {
             return "publish";
         }
         fbService.publishPost(customerEntries, customer);
-        return "publish";
+        return "facebook-publish";
     }
 
     @ModelAttribute

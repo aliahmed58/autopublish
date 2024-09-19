@@ -19,9 +19,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
-public class IndexController {
+public class FacebookController {
 
-    Logger logger = LoggerFactory.getLogger(IndexController.class);
+    Logger logger = LoggerFactory.getLogger(FacebookController.class);
 
     @Autowired
     private EntryService entryService;
@@ -40,14 +40,14 @@ public class IndexController {
 
     @GetMapping("/")
     public String renderIndex(Model model) throws JsonProcessingException, InterruptedException {
-        return "index";
+        return "facebook-index";
     }
 
     @PostMapping("/fb-login")
     public String getResponse(@RequestBody String requestBody, Model model) throws JsonProcessingException, InterruptedException {
         Customer customer = (Customer) model.getAttribute("user");
         fbService.getUserLongAccessToken(requestBody, customer.getUsername());
-        return "index";
+        return "facebook-index";
     }
 
     // Methods for showing entries
@@ -84,7 +84,7 @@ public class IndexController {
         Customer customer = (Customer) model.getAttribute("user");
         assert customer != null;
         model.addAttribute("pages", fbService.getPagesByCustomer(customer));
-        return "index";
+        return "facebook-index";
     }
 
 

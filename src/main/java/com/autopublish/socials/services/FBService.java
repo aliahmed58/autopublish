@@ -98,10 +98,10 @@ public class FBService {
                     result);
 
             String longLivedUserAccessToken = resultNode.get("access_token").asText();
+            currentCustomer.setFbUserAccessToken(longLivedUserAccessToken);
             getPageLongAccessToken(longLivedUserAccessToken,
                     fbUserId, currentCustomer);
 
-            currentCustomer.setFbUserAccessToken(longLivedUserAccessToken);
             currentCustomer.setFbUserId(fbUserId);
 
             customerService.update(currentCustomer);
